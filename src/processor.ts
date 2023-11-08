@@ -1,6 +1,5 @@
-import { isString } from '@freik/typechk';
 import readline from 'readline';
-import { SymbolTable, Value } from './symbols.js';
+import { SymbolTable } from './symbols.js';
 import { Writer } from './types.js';
 
 type LineProc =
@@ -15,25 +14,25 @@ const directiveRegex = /^\s*#\s*(\w+)\s*((?:\s|\(|$).*)$/;
 const validNameRegex = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)(.*)/;
 
 // Join the list of backslashified lines together into a value
-function JoinLines(lines: string[]): Value {
-  let val: string | string[] = '';
+function JoinLines(lines: string[]): string {
+  let val: string = '';
+  let lastNL = false;
   for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (trimmed.endsWith('\\\\')) {
-      // This gets a new line after the current line
-      if (isString(val)) {
-        val = [val + line.substring(0, trimmed.length - 2)];
-      } else {
-        val.push(line.substring(0, trimmed.length - 2));
-      }
-    } else {
-      if (isString(val)) {
-        val = val + line.substring(0, trimmed.length - 1);
-      } else {
-        val[val.length - 1] =
-          val[val.length - 1] + line.substring(0, trimmed.length - 1);
-      }
+    let trimmed = line.trimEnd();
+    if (lastNL) {
+      val += '\n';
     }
+    if (trimmed.endsWith('\\\\')) {
+      trimmed = trimmed.substring(0, trimmed.length - 2);
+      lastNL = true;
+    } else if (trimmed.endsWith('\\')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1);
+      lastNL = false;
+    } else {
+      trimmed = line;
+      lastNL = false;
+    }
+    val += trimmed;
   }
   return val;
 }

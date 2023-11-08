@@ -1,6 +1,6 @@
-import { hasFieldType, isArrayOfString } from '@freik/typechk';
+import { hasFieldType, isArrayOfString, isUndefined } from '@freik/typechk';
 
-export type Value = string | string[] | undefined;
+export type Value = string | undefined;
 export type Symbol = {
   value: Value;
 };
@@ -15,7 +15,16 @@ export function DumpSymbol(s: Symbol | Macro) {
   if (hasFieldType(s, 'args', isArrayOfString)) {
     console.log(`Args: (${s.args.join(', ')})`);
   }
-  console.log(`Value: ${s.value === undefined ? '<undefined>' : s.value}`);
+  if (isUndefined(s.value)) {
+    console.log(`Value: <undefined>`);
+  } else {
+    if (s.value.indexOf('\n') >= 0) {
+      console.log(`Value:`);
+      s.value.split('\n').forEach((line) => console.log(`\t${line}`));
+    } else {
+      console.log(`Value: ${s.value}`);
+    }
+  }
 }
 
 export function InitializeSymbolTable(defines: string[]): SymbolTable {

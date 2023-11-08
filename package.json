@@ -1,0 +1,55 @@
+{
+  "name": "cpp-lite",
+  "version": "0.1.0",
+  "description": "A C-preprocessor like little utility",
+  "author": "Kevin Frei <kevinfrei@hotmail.com>",
+  "license": "Unlicense",
+  "repository": "https://github.com/kevinfrei/cpp-lite.git",
+  "bugs": {
+    "url": "https://github.com/kevinfrei/cpp-lite/issues"
+  },
+  "keywords": [
+    "cpp",
+    "preprocessor",
+    "text"
+  ],
+  "type": "module",
+  "files": [
+    "lib/**/*"
+  ],
+  "bin": "./lib/entry.js",
+  "scripts": {
+    "justtest": "jest --config jestconfig.json",
+    "build": "rimraf lib && tsc",
+    "prepare": "yarn run build",
+    "prepublishOnly": "yarn test && yarn run lint",
+    "lint": "yarn run eslint --fix --ext .ts src",
+    "preversion": "yarn run lint",
+    "typechk": "tsc --noEmit",
+    "test": "yarn lint && yarn typechk",
+    "format": "yarn prettier -w src/**/*.ts *.json *.md"
+  },
+  "dependencies": {
+    "@freik/logger": "^0.2.7",
+    "@freik/typechk": "^0.5.8"
+  },
+  "devDependencies": {
+    "@freik/build-tools": "^3.6.7",
+    "@jest/types": "^29.6.3",
+    "@types/node": "^20.9.0",
+    "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.0.0",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "pinst": "^3.0.0",
+    "prettier": "^3.0.3",
+    "rimraf": "^5.0.5",
+    "typedoc": "^0.25.3",
+    "typedoc-plugin-markdown": "^3.17.1",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": "^14.13.1 || >= 16.0.0"
+  },
+  "packageManager": "yarn@4.0.1"
+}

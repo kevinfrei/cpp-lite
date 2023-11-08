@@ -116,6 +116,9 @@ dist
 # DynamoDB Local files
 .dynamodb/
 
+# Typescript output
+lib/
+
 # TernJS port file
 .tern-port
 

@@ -2,6 +2,7 @@ import fs from 'fs';
 import readline from 'readline';
 import {
   DefineState,
+  IsTrueState,
   NormalState,
   ParseState,
   StartState,
@@ -12,7 +13,6 @@ import {
   StateError,
   StateIfdef,
   StateNormal,
-  TrueState,
 } from './parsestate.js';
 import { SymbolTable } from './symbols.js';
 import { Writer } from './types.js';
@@ -137,19 +137,15 @@ async function NormalContext(
       case 'elifndef':
         return StateElifdef(st, !st.table.IsDefined(rgx[2].trim()));
       case 'include':
-        if (TrueState(st)) {
-          const filename = rgx[2].match(includePathRegex);
-          if (filename === null) {
-            return StateError(st, `#include requires a quoted filename`);
-          }
-          await IncludeFile(st, filename[1], output);
+        if (IsTrueState(st)) {
+          return await IncludeFile(st, rgx[2], output);
         }
         break;
       default:
         output(`#${directive} not recognized`);
         break;
     }
-  } else if (TrueState(st)) {
+  } else if (IsTrueState(st)) {
     // If we're in a "true" state, output the line
     OutputString(st.table, output, line);
   }
@@ -158,9 +154,14 @@ async function NormalContext(
 
 async function IncludeFile(
   st: NormalState,
-  filename: string,
+  fileBlob: string,
   output: Writer,
 ): Promise<ParseState> {
+  const fileMatch = fileBlob.match(includePathRegex);
+  if (fileMatch === null) {
+    return StateError(st, `#include requires a quoted filename`);
+  }
+  const filename = fileMatch[1];
   // TODO: check include paths for the include file
   const ifDepth = st.conditions.length;
   const reader = readline.createInterface({

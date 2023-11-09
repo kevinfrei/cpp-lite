@@ -20,10 +20,10 @@ import { Writer } from './types.js';
 const directiveRegex = /^\s*#\s*(\w+)\s*((?:\s|\(|$).*)$/;
 // 1 -> "valid name for a thing", 2 -> rest of line
 const validNameRegex = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)(.*)/;
-// 1 -> maybe space, 2 -> token 3 -> Maybe space 4 -> rest of line
-const nextTokenRegex = /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s+)(.*)$/;
+// 1 -> maybe space, 2 -> token 3 -> rest of line
+const nextTokenRegex = /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(.*)$/;
 // 1 -> consume to the next nonspace 2 -> rest of line
-const nextStartRegex = /^(\s*\S+)(.*)$/;
+const nextStartRegex = /^(\s*\S)(.*)$/;
 
 function OutputString(st: SymbolTable, output: Writer, line: string): void {
   let remaining = line;
@@ -31,22 +31,17 @@ function OutputString(st: SymbolTable, output: Writer, line: string): void {
     let match = remaining.match(nextTokenRegex);
     if (match !== null) {
       const initSpace = match[1];
-      const token = match[2];
-      const endSpace = match[3];
+      let token: string | undefined = match[2];
+      remaining = match[3];
       if (st.IsSymbol(token)) {
-        const expr = st.ExpandSymbol(token);
-        output(initSpace + expr + endSpace);
-        remaining = match[4];
+        token = st.ExpandSymbol(token);
       } else if (st.IsMacro(token)) {
         // TODO: Not ready for this yet :/
         // I think I want a nested Symbol Table :o
         // Parse the arguments, and then output the macro body with the extra symbols added
-        const expr = st.ExpandMacro(token, []);
-        output(initSpace + expr + endSpace);
-        remaining = match[4];
-      } else {
-        output(initSpace + token + endSpace);
+        token = st.ExpandMacro(token, []);
       }
+      output(initSpace + (token || ''));
     } else {
       // Consume non-token item
       match = remaining.match(nextStartRegex);
@@ -60,6 +55,7 @@ function OutputString(st: SymbolTable, output: Writer, line: string): void {
       }
     }
   } while (remaining.length > 0);
+  output('\n');
 }
 
 // Join the list of backslashified lines together into a value

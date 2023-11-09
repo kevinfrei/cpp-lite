@@ -58,10 +58,10 @@ async function makeWriter(
   file: string | undefined,
 ): Promise<(arg: string) => void> {
   if (file === undefined) {
-    return (line: string) => process.stdout.write(line + '\n');
+    return (line: string) => process.stdout.write(line);
   } else {
     const out = fs.createWriteStream(file);
-    return (line: string) => out.write(line + '\n');
+    return (line: string) => out.write(line);
   }
 }
 

@@ -19,7 +19,7 @@ export type SymbolTable = {
   ExpandSymbol: (name: string) => string | undefined;
   ExpandMacro: (name: string, bindings: string[]) => string | undefined;
   GetParent: () => SymbolTable | undefined;
-  dump: (prefix: string | undefined) => void;
+  dump: (prefix?: string) => void;
 };
 
 export function DumpSymbol(s: Symbol | Macro) {
@@ -29,19 +29,14 @@ export function DumpSymbol(s: Symbol | Macro) {
   if (isUndefined(s.value)) {
     console.log(`Value: <undefined>`);
   } else {
-    if (s.value.indexOf('\n') >= 0) {
-      console.log(`Value:`);
-      s.value.split('\n').forEach((line) => console.log(`\t${line}`));
-    } else {
-      console.log(`Value: ${s.value}`);
-    }
+    console.log(`Value: '${s.value}'`);
   }
 }
 
 function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
   const parent: SymbolTable | null = isArrayOfString(defOrParent)
     ? null
-    : defOrParent;
+    : (defOrParent as SymbolTable);
   const symbolTable = new Map<string, Symbol>();
   function MakeSymbol(value: Value): Symbol {
     return { value };
@@ -51,7 +46,7 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
     return { ...MakeSymbol(body), args };
   }
   if (isArrayOfString(defOrParent)) {
-    for (const define of defOrParent) {
+    for (const define of defOrParent as string[]) {
       const [name, ...args] = define.split('=');
       const sym = MakeSymbol(args.join('='));
       symbolTable.set(name, sym);
@@ -107,7 +102,7 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
       return parent !== null ? parent : undefined;
     },
 
-    dump: (prefix: string | undefined) => {
+    dump: (prefix?: string) => {
       const pfx = prefix || '';
       for (const [key, val] of symbolTable) {
         console.log(`${pfx}Symbol ${key}: `);

@@ -104,7 +104,11 @@ function HandleDefine(ps: NormalState, line: string): ParseState {
   }
   const name = def[1];
   const value = def[2].trimStart();
-  return ConsumeDefine(StateDefine(ps, name), value);
+  if (value.trim().startsWith('(')) {
+    // We have ourselves a macro
+  } else {
+    return ConsumeDefine(StateDefine(ps, name), value);
+  }
 }
 
 function NormalContext(

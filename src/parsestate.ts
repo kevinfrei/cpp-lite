@@ -13,7 +13,12 @@ export interface DefineState {
   name: string;
   values: string[];
 }
-interface ErrorState {
+export interface MacroState {
+  state: 'macro';
+  table: SymbolTable;
+  params: string[];
+}
+export interface ErrorState {
   state: 'error';
   table: SymbolTable;
   conditions: boolean[];

@@ -28,7 +28,13 @@ file is specified will output to stdout.
 #define MORE_STUFF blah \
  doSomeStuff(); \
  andEvenMoreStuff()
-#define FUNC(a, b...) foo a . b
+// NYI:
+#define FUNC(a, b...) foo a . FUNC(b)
+#define FUNC(a) bar(a)
+// NYI;
+// You can do some weird stuff with rest params:
+#define MYFUNC(a, b..., c, d) first a then c, and d, but don't forget MYFUNC(b)
+#define MYFUNC(a, b, c) This forces MYFUNC to only have multiples of 3 parameters
 ```
 
 ### Planned/unplanned Capabilities

@@ -1,3 +1,4 @@
+import fs from 'fs';
 import readline from 'readline';
 import {
   DefineState,
@@ -24,6 +25,8 @@ const validNameRegex = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)(.*)/;
 const nextTokenRegex = /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(.*)$/;
 // 1 -> consume to the next nonspace 2 -> rest of line
 const nextStartRegex = /^(\s*\S)(.*)$/;
+// 1 -> include path
+const includePathRegex = /^\s*"(.*)"\s*$/;
 
 function OutputString(st: SymbolTable, output: Writer, line: string): void {
   let remaining = line;
@@ -105,17 +108,16 @@ function HandleDefine(ps: NormalState, line: string): ParseState {
   const name = def[1];
   const value = def[2].trimStart();
   if (value.trim().startsWith('(')) {
-    // We have ourselves a macro
-  } else {
-    return ConsumeDefine(StateDefine(ps, name), value);
+    // TODO: We have ourselves a macro
   }
+  return ConsumeDefine(StateDefine(ps, name), value);
 }
 
-function NormalContext(
+async function NormalContext(
   st: NormalState,
   line: string,
   output: Writer,
-): ParseState {
+): Promise<ParseState> {
   const rgx = line.match(directiveRegex);
   if (rgx !== null) {
     const directive = rgx[1];
@@ -136,7 +138,11 @@ function NormalContext(
         return StateElifdef(st, !st.table.IsDefined(rgx[2].trim()));
       case 'include':
         if (TrueState(st)) {
-          output('#include directive not yet supported');
+          const filename = rgx[2].match(includePathRegex);
+          if (filename === null) {
+            return StateError(st, `#include requires a quoted filename`);
+          }
+          await IncludeFile(st, filename[1], output);
         }
         break;
       default:
@@ -144,10 +150,50 @@ function NormalContext(
         break;
     }
   } else if (TrueState(st)) {
-    // Tokenize the rest of the line and write it out, looking up symbols
+    // If we're in a "true" state, output the line
     OutputString(st.table, output, line);
   }
   return st;
+}
+
+async function IncludeFile(
+  st: NormalState,
+  filename: string,
+  output: Writer,
+): Promise<ParseState> {
+  // TODO: check include paths for the include file
+  const ifDepth = st.conditions.length;
+  const reader = readline.createInterface({
+    input: fs.createReadStream(filename),
+  });
+  const res = await ReadFile(reader, st, output);
+  if (ifDepth != res.conditions.length) {
+    throw new Error(
+      `#include "${filename}" doesn't have balanced #if/#endif's (${ifDepth} vs ${res.conditions.length})`,
+    );
+  }
+  return res;
+}
+
+async function ReadFile(
+  input: readline.Interface,
+  parseState: ParseState,
+  output: Writer,
+): Promise<ParseState> {
+  await input.on('line', async (line: string) => {
+    switch (parseState.state) {
+      case 'normal':
+        parseState = await NormalContext(parseState, line, output);
+        break;
+      case 'define':
+        parseState = ConsumeDefine(parseState, line);
+        break;
+      case 'error':
+        console.error('Parse error: ', parseState.message);
+        input.close();
+    }
+  });
+  return parseState;
 }
 
 // Entry point for processing a file
@@ -158,17 +204,5 @@ export async function ProcessFile(
 ): Promise<void> {
   // For each line, first check for directives
   let parseState: ParseState = StartState(symbolTable);
-  await input.on('line', async (line: string) => {
-    switch (parseState.state) {
-      case 'normal':
-        parseState = NormalContext(parseState, line, output);
-        break;
-      case 'define':
-        parseState = ConsumeDefine(parseState, line);
-        break;
-      case 'error':
-        console.error('Parse error: ', parseState.message);
-        input.close();
-    }
-  });
+  parseState = await ReadFile(input, parseState, output);
 }

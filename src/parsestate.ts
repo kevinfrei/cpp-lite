@@ -1,27 +1,23 @@
 import { isUndefined } from '@freik/typechk';
 import { SymbolTable } from './symbols.js';
 
-export interface NormalState {
-  state: 'normal';
+export interface BaseState {
   table: SymbolTable;
   conditions: boolean[];
 }
-export interface DefineState {
+export interface NormalState extends BaseState {
+  state: 'normal';
+}
+export interface DefineState extends BaseState {
   state: 'define';
-  table: SymbolTable;
-  conditions: boolean[];
   name: string;
   values: string[];
 }
-export interface MacroState {
+export interface MacroState extends BaseState {
   state: 'macro';
-  table: SymbolTable;
-  params: string[];
 }
-export interface ErrorState {
+export interface ErrorState extends BaseState {
   state: 'error';
-  table: SymbolTable;
-  conditions: boolean[];
   message: string;
 }
 export type ParseState = NormalState | DefineState | ErrorState;

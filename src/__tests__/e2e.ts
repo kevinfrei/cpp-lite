@@ -1,22 +1,24 @@
-import { promises as fsp, mkdirSync } from 'fs';
+import fs, { promises as fsp } from 'fs';
 import { rimraf } from 'rimraf';
-import { Main } from '../index';
+import { MainAsync } from '../index';
+import { FileUtil } from '@freik/node-utils';
 
 const dumb = 'src/__tests__/files/dumb.txt';
 const dumbOut = 'src/__tests__/results/output.txt';
 
-beforeAll(() => {
-  rimraf.sync('src/__tests__/results');
-  mkdirSync('src/__tests__/results');
+beforeAll(async () => {
+  await rimraf('src/__tests__/results');
+  await fsp.mkdir('src/__tests__/results');
 });
 
 afterAll(() => {
-  rimraf.sync('src/__tests__/results');
+  // rimraf.sync('src/__tests__/results');
 });
 
 test('dumb cat', async () => {
-  await Main([dumb, '-o', dumbOut]);
-  const dumbin = await fsp.readFile(dumb);
-  const dumbout = await fsp.readFile(dumbOut);
-  expect(dumbin).toEqual(dumbout);
+  await MainAsync([dumb, '-o', dumbOut]);
+  const dumbin = await FileUtil.textFileToArrayAsync(dumb);
+  const dumbout = await FileUtil.textFileToArrayAsync(dumbOut);
+  // await new Promise(process.nextTick);
+  expect(dumbin.join("**")).toEqual(dumbout.join("**"));
 });

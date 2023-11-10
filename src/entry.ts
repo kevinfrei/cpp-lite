@@ -1,3 +1,3 @@
-import { Main } from './index.js';
+import { MainSync } from './index.js';
 
-Main(process.argv.slice(2));
+MainSync(process.argv.slice(2));

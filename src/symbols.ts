@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {
   hasFieldType,
   isArrayOfString,
@@ -5,14 +6,14 @@ import {
   isUndefined,
 } from '@freik/typechk';
 
-export type Value = string | undefined;
-export type Symbol = {
-  value: Value;
+export type Val = string | undefined;
+export type Sym = {
+  value: Val;
 };
-export type Macro = Symbol & { args: string[] };
+export type Macro = Sym & { args: string[] };
 export type SymbolTable = {
-  AddSymbol: (name: string, value: Value) => void;
-  AddMacro: (name: string, args: string[], body: Value) => void;
+  AddSymbol: (name: string, value: Val) => void;
+  AddMacro: (name: string, args: string[], body: Val) => void;
   IsDefined: (name: string) => boolean;
   IsSymbol: (name: string) => boolean;
   IsMacro: (name: string) => boolean;
@@ -22,7 +23,7 @@ export type SymbolTable = {
   dump: (prefix?: string) => void;
 };
 
-export function DumpSymbol(s: Symbol | Macro) {
+export function DumpSymbol(s: Sym | Macro) {
   if (hasFieldType(s, 'args', isArrayOfString)) {
     console.log(`Macro: (${s.args.join(', ')})`);
   }
@@ -36,28 +37,28 @@ export function DumpSymbol(s: Symbol | Macro) {
 function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
   const parent: SymbolTable | null = isArrayOfString(defOrParent)
     ? null
-    : (defOrParent as SymbolTable);
-  const symbolTable = new Map<string, Symbol>();
-  function MakeSymbol(value: Value): Symbol {
+    : defOrParent;
+  const symbolTable = new Map<string, Sym>();
+  function MakeSymbol(value: Val): Sym {
     return { value };
   }
 
-  function MakeMacro(args: string[], body: Value): Macro {
+  function MakeMacro(args: string[], body: Val): Macro {
     return { ...MakeSymbol(body), args };
   }
   if (isArrayOfString(defOrParent)) {
-    for (const define of defOrParent as string[]) {
+    for (const define of defOrParent) {
       const [name, ...args] = define.split('=');
       const sym = MakeSymbol(args.join('='));
       symbolTable.set(name, sym);
     }
   }
   return {
-    AddSymbol: (name: string, value: Value): void => {
+    AddSymbol: (name: string, value: Val): void => {
       symbolTable.set(name, MakeSymbol(value));
     },
 
-    AddMacro: (name: string, args: string[], body: Value): void => {
+    AddMacro: (name: string, args: string[], body: Val): void => {
       symbolTable.set(name, MakeMacro(args, body));
     },
 
@@ -93,7 +94,9 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
       return undefined;
     },
 
-    ExpandMacro: (name: string, bindings: string[]): string | undefined => {
+    ExpandMacro: (
+      name: string /* , bindings: string[]*/,
+    ): string | undefined => {
       const sym = symbolTable.get(name);
       return isDefined(sym) ? sym.value || '' : name;
     },

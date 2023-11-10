@@ -19,7 +19,7 @@
   ],
   "bin": "./lib/entry.js",
   "scripts": {
-    "justtest": "jest --config jestconfig.json",
+    "test": "jest --config jestconfig.json",
     "watch": "jest --watch --config jestconfig.json",
     "build": "rimraf lib && tsc",
     "prepare": "yarn run build",
@@ -27,11 +27,12 @@
     "lint": "yarn run eslint --fix --ext .ts src",
     "preversion": "yarn run lint",
     "typechk": "tsc --noEmit",
-    "test": "yarn lint && yarn typechk",
+    "fulltest": "yarn lint && yarn typechk && yarn test",
     "format": "yarn prettier -w src/**/*.ts *.json *.md"
   },
   "dependencies": {
     "@freik/logger": "^0.2.7",
+    "@freik/node-utils": "^1.6.0",
     "@freik/typechk": "^0.5.8"
   },
   "devDependencies": {
@@ -39,6 +40,8 @@
     "@jest/types": "^29.6.3",
     "@types/jest": "^29.5.8",
     "@types/node": "^20.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
     "babel-eslint": "^10.1.0",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^9.0.0",

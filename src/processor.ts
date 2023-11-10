@@ -15,7 +15,10 @@ import {
   StateNormal,
 } from './parsestate.js';
 import { SymbolTable } from './symbols.js';
-import { Writer } from './types.js';
+import { OutputIO } from './types.js';
+import { MakeLog } from '@freik/logger';
+
+const { err } = MakeLog('processor');
 
 // This monstrosity matches a # directive (1 -> directive, 2 -> rest of line)
 const directiveRegex = /^\s*#\s*(\w+)\s*((?:\s|\(|$).*)$/;
@@ -28,7 +31,11 @@ const nextStartRegex = /^(\s*\S)(.*)$/;
 // 1 -> include path
 const includePathRegex = /^\s*"(.*)"\s*$/;
 
-function OutputString(st: SymbolTable, output: Writer, line: string): void {
+async function OutputString(
+  st: SymbolTable,
+  output: OutputIO,
+  line: string,
+): Promise<void> {
   let remaining = line;
   do {
     let match = remaining.match(nextTokenRegex);
@@ -44,21 +51,21 @@ function OutputString(st: SymbolTable, output: Writer, line: string): void {
         // Parse the arguments, and then output the macro body with the extra symbols added
         token = st.ExpandMacro(token, []);
       }
-      output(initSpace + (token || ''));
+      await output(initSpace + (token || ''));
     } else {
       // Consume non-token item
       match = remaining.match(nextStartRegex);
       if (match === null) {
         // Trailling spaces, probably...
-        output(remaining);
+        await output(remaining);
         remaining = '';
       } else {
-        output(match[1]);
+        await output(match[1]);
         remaining = match[2];
       }
     }
   } while (remaining.length > 0);
-  output('\n');
+  await output('\n');
 }
 
 // Join the list of backslashified lines together into a value
@@ -116,7 +123,7 @@ function HandleDefine(ps: NormalState, line: string): ParseState {
 async function NormalContext(
   st: NormalState,
   line: string,
-  output: Writer,
+  output: OutputIO,
 ): Promise<ParseState> {
   const rgx = line.match(directiveRegex);
   if (rgx !== null) {
@@ -142,12 +149,12 @@ async function NormalContext(
         }
         break;
       default:
-        output(`#${directive} not recognized`);
+        await output(`#${directive} not recognized`);
         break;
     }
   } else if (IsTrueState(st)) {
     // If we're in a "true" state, output the line
-    OutputString(st.table, output, line);
+    await OutputString(st.table, output, line);
   }
   return st;
 }
@@ -155,7 +162,7 @@ async function NormalContext(
 async function IncludeFile(
   st: NormalState,
   fileBlob: string,
-  output: Writer,
+  output: OutputIO,
 ): Promise<ParseState> {
   const fileMatch = fileBlob.match(includePathRegex);
   if (fileMatch === null) {
@@ -168,7 +175,7 @@ async function IncludeFile(
     input: fs.createReadStream(filename),
   });
   const res = await ReadFile(reader, st, output);
-  if (ifDepth != res.conditions.length) {
+  if (ifDepth !== res.conditions.length) {
     throw new Error(
       `#include "${filename}" doesn't have balanced #if/#endif's (${ifDepth} vs ${res.conditions.length})`,
     );
@@ -179,9 +186,9 @@ async function IncludeFile(
 async function ReadFile(
   input: readline.Interface,
   parseState: ParseState,
-  output: Writer,
+  output: OutputIO,
 ): Promise<ParseState> {
-  await input.on('line', async (line: string) => {
+  for await (const line of input) {
     switch (parseState.state) {
       case 'normal':
         parseState = await NormalContext(parseState, line, output);
@@ -190,10 +197,10 @@ async function ReadFile(
         parseState = ConsumeDefine(parseState, line);
         break;
       case 'error':
-        console.error('Parse error: ', parseState.message);
+        err('Parse error: ', parseState.message);
         input.close();
     }
-  });
+  }
   return parseState;
 }
 
@@ -201,9 +208,7 @@ async function ReadFile(
 export async function ProcessFile(
   symbolTable: SymbolTable,
   input: readline.Interface,
-  output: Writer,
+  output: OutputIO,
 ): Promise<void> {
-  // For each line, first check for directives
-  let parseState: ParseState = StartState(symbolTable);
-  parseState = await ReadFile(input, parseState, output);
+  await ReadFile(input, StartState(symbolTable), output);
 }

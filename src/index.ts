@@ -1,15 +1,16 @@
 import { MakeLog } from '@freik/logger';
 import { isNumber } from '@freik/typechk';
-import fs from 'fs';
-import readline from 'readline';
+import { ReadStream } from 'fs';
 import { ProcessFile } from './processor.js';
 import { InitializeSymbolTable, SymbolTable } from './symbols.js';
 import { CmdLine } from './types.js';
+import { MakeIO } from './MakeIO.js';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment
 const { log, err } = MakeLog('index');
 
 function Usage(name: string) {
-  console.log(
+  err(
     `Usage: ${name} [-I <include>] [-I<include>] [-D <define>] [-D<define>=<val>] [-o <outfile>] <infile>`,
   );
 }
@@ -54,34 +55,25 @@ function parseArgs(args: string[]): CmdLine | number {
   return res;
 }
 
-async function makeWriter(
-  file: string | undefined,
-): Promise<(arg: string) => void> {
-  if (file === undefined) {
-    return (line: string) => process.stdout.write(line);
-  } else {
-    const out = fs.createWriteStream(file);
-    return (line: string) => out.write(line);
-  }
-}
-
 async function invoke(cmdLine: CmdLine): Promise<void> {
   // Create the read & write streams
-  const rl = readline.createInterface({
-    input:
-      cmdLine.input === undefined
-        ? process.stdin
-        : fs.createReadStream(cmdLine.input),
-    terminal: false,
-  });
-  const output = await makeWriter(cmdLine.output);
+  const { rl, output, input } = MakeIO(cmdLine.input, cmdLine.output);
 
   // Create the symbol table
   const syms: SymbolTable = InitializeSymbolTable(cmdLine.defines);
+  
   await ProcessFile(syms, rl, output);
+
+  // Close the output
+  await output.close();
+  // Close the input, too
+  if (cmdLine.input !== undefined) {
+    const irs: ReadStream = input as ReadStream;
+    irs.close();
+  }
 }
 
-export function Main(args: string[]): void {
+export async function MainAsync(args: string[]): Promise<void> {
   const cmdLine = parseArgs(args);
   if (cmdLine === 0) {
     Usage('yarn run cpp-lite');
@@ -90,6 +82,10 @@ export function Main(args: string[]): void {
     err(`Error parsing command line: ${cmdLine}`);
     return;
   } else {
-    invoke(cmdLine).catch(err);
+    await invoke(cmdLine);
   }
+}
+
+export function MainSync(args: string[]): void {
+  MainAsync(args).catch(err);
 }

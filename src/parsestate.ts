@@ -62,5 +62,5 @@ export function StateEndif(ps: NormalState): NormalState | ErrorState {
   return ps;
 }
 export function IsTrueState(ps: NormalState): boolean {
-  return ps.conditions.length === 0 || ps.conditions.every(val => val);
+  return ps.conditions.length === 0 || ps.conditions.every((val) => val);
 }

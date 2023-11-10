@@ -1,0 +1,18 @@
+total 64
+drwxr-xr-x  4 freik   128 Nov  9 12:44 __tests__/
+-rw-r--r--  1 freik    65 Nov  8 08:25 entry.ts
+-rw-r--r--  1 freik  2569 Nov  9 07:52 index.ts
+-rw-r--r--  1 freik  1979 Nov  9 08:40 parsestate.ts
+-rw-r--r--  1 freik  6023 Nov  9 08:39 processor.ts
+-rw-r--r--  1 freik  3602 Nov  9 07:52 symbols.ts
+-rw-r--r--  1 freik    90 Nov  8 15:13 test.cpp
+-rw-r--r--  1 freik   173 Nov  8 11:17 types.ts
+
+./__tests__:
+total 8
+-rw-r--r--  1 freik  129 Nov  9 12:43 e2e.ts
+drwxr-xr-x  3 freik   96 Nov  9 12:44 files/
+
+./__tests__/files:
+total 0
+-rw-r--r--  1 freik  0 Nov  9 12:44 dumb.txt

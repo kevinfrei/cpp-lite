@@ -20,6 +20,7 @@
   "bin": "./lib/entry.js",
   "scripts": {
     "justtest": "jest --config jestconfig.json",
+    "watch": "jest --watch --config jestconfig.json",
     "build": "rimraf lib && tsc",
     "prepare": "yarn run build",
     "prepublishOnly": "yarn test && yarn run lint",
@@ -36,7 +37,9 @@
   "devDependencies": {
     "@freik/build-tools": "^3.6.7",
     "@jest/types": "^29.6.3",
+    "@types/jest": "^29.5.8",
     "@types/node": "^20.9.0",
+    "babel-eslint": "^10.1.0",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^9.0.0",
     "husky": "^8.0.3",
@@ -44,6 +47,7 @@
     "pinst": "^3.0.0",
     "prettier": "^3.0.3",
     "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.1",
     "typedoc": "^0.25.3",
     "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.2.2"

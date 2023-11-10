@@ -1,8 +1,8 @@
 import { isUndefined } from '@freik/typechk';
-import { SymbolTable } from './symbols.js';
+import { SymTable } from './symbols.js';
 
 export interface BaseState {
-  table: SymbolTable;
+  table: SymTable;
   conditions: boolean[];
 }
 export interface NormalState extends BaseState {
@@ -11,6 +11,7 @@ export interface NormalState extends BaseState {
 export interface DefineState extends BaseState {
   state: 'define';
   name: string;
+  args?: string[];
   values: string[];
 }
 export interface MacroState extends BaseState {
@@ -21,7 +22,7 @@ export interface ErrorState extends BaseState {
   message: string;
 }
 export type ParseState = NormalState | DefineState | ErrorState;
-export function StartState(table: SymbolTable): NormalState {
+export function StartState(table: SymTable): NormalState {
   return { state: 'normal', table, conditions: [] };
 }
 export function StateNormal(ps: ParseState): NormalState {
@@ -29,6 +30,13 @@ export function StateNormal(ps: ParseState): NormalState {
 }
 export function StateDefine(ps: NormalState, name: string): DefineState {
   return { ...ps, state: 'define', name, values: [] };
+}
+export function StateMacro(
+  ps: NormalState,
+  name: string,
+  args: string[],
+): DefineState {
+  return { ...ps, state: 'define', name, args, values: [] };
 }
 export function StateError(ps: ParseState, message: string): ErrorState {
   return { ...ps, state: 'error', message };

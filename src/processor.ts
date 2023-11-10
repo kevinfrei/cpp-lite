@@ -1,44 +1,32 @@
+import { MakeLog } from '@freik/logger';
 import fs from 'fs';
 import readline from 'readline';
+import { ConsumeDefine, HandleDefine, HandleUndef } from './define.js';
 import {
-  DefineState,
   IsTrueState,
   NormalState,
   ParseState,
   StartState,
-  StateDefine,
   StateElifdef,
   StateElse,
   StateEndif,
   StateError,
   StateIfdef,
-  StateNormal,
 } from './parsestate.js';
-import { SymbolTable } from './symbols.js';
+import { Rgx } from './regexes.js';
+import { SymTable } from './symbols.js';
 import { OutputIO } from './types.js';
-import { MakeLog } from '@freik/logger';
 
 const { err } = MakeLog('processor');
 
-// This monstrosity matches a # directive (1 -> directive, 2 -> rest of line)
-const directiveRegex = /^\s*#\s*(\w+)\s*((?:\s|\(|$).*)$/;
-// 1 -> "valid name for a thing", 2 -> rest of line
-const validNameRegex = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)(.*)/;
-// 1 -> maybe space, 2 -> token 3 -> rest of line
-const nextTokenRegex = /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(.*)$/;
-// 1 -> consume to the next nonspace 2 -> rest of line
-const nextStartRegex = /^(\s*\S)(.*)$/;
-// 1 -> include path
-const includePathRegex = /^\s*"(.*)"\s*$/;
-
 async function OutputString(
-  st: SymbolTable,
+  st: SymTable,
   output: OutputIO,
   line: string,
 ): Promise<void> {
   let remaining = line;
   do {
-    let match = remaining.match(nextTokenRegex);
+    let match = remaining.match(Rgx.nextToken);
     if (match !== null) {
       const initSpace = match[1];
       let token: string | undefined = match[2];
@@ -54,7 +42,7 @@ async function OutputString(
       await output(initSpace + (token || ''));
     } else {
       // Consume non-token item
-      match = remaining.match(nextStartRegex);
+      match = remaining.match(Rgx.nextStart);
       if (match === null) {
         // Trailling spaces, probably...
         await output(remaining);
@@ -68,69 +56,19 @@ async function OutputString(
   await output('\n');
 }
 
-// Join the list of backslashified lines together into a value
-function JoinLines(lines: string[]): string {
-  let val: string = '';
-  let lastNL = false;
-  for (const line of lines) {
-    let trimmed = line.trimEnd();
-    if (lastNL) {
-      val += '\n';
-    }
-    if (trimmed.endsWith('\\\\')) {
-      trimmed = trimmed.substring(0, trimmed.length - 2);
-      lastNL = true;
-    } else if (trimmed.endsWith('\\')) {
-      trimmed = trimmed.substring(0, trimmed.length - 1);
-      lastNL = false;
-    } else {
-      trimmed = line;
-      lastNL = false;
-    }
-    val += trimmed;
-  }
-  return val;
-}
-
-function ConsumeDefine(
-  ps: DefineState,
-  line: string,
-): NormalState | DefineState {
-  if (!line.trimEnd().endsWith('\\')) {
-    // We've reached the end of the lines:
-    // add the lines as the value to the symbol table
-    ps.table.AddSymbol(ps.name, JoinLines([...ps.values, line]));
-    return StateNormal(ps);
-  }
-  // Just add this line to the list of lines and keep going
-  ps.values.push(line);
-  return ps;
-}
-
-function HandleDefine(ps: NormalState, line: string): ParseState {
-  const def = line.match(validNameRegex);
-  if (def === null) {
-    return StateError(ps, `Invalid define statement: ${line}`);
-  }
-  const name = def[1];
-  const value = def[2].trimStart();
-  if (value.trim().startsWith('(')) {
-    // TODO: We have ourselves a macro
-  }
-  return ConsumeDefine(StateDefine(ps, name), value);
-}
-
 async function NormalContext(
   st: NormalState,
   line: string,
   output: OutputIO,
 ): Promise<ParseState> {
-  const rgx = line.match(directiveRegex);
+  const rgx = line.match(Rgx.directive);
   if (rgx !== null) {
     const directive = rgx[1];
     switch (directive) {
       case 'define':
         return HandleDefine(st, rgx[2]);
+      case 'undef':
+        return HandleUndef(st, rgx[2]);
       case 'ifdef':
         return StateIfdef(st, st.table.IsDefined(rgx[2].trim()));
       case 'ifndef':
@@ -164,7 +102,7 @@ async function IncludeFile(
   fileBlob: string,
   output: OutputIO,
 ): Promise<ParseState> {
-  const fileMatch = fileBlob.match(includePathRegex);
+  const fileMatch = fileBlob.match(Rgx.includePath);
   if (fileMatch === null) {
     return StateError(st, `#include requires a quoted filename`);
   }
@@ -206,7 +144,7 @@ async function ReadFile(
 
 // Entry point for processing a file
 export async function ProcessFile(
-  symbolTable: SymbolTable,
+  symbolTable: SymTable,
   input: readline.Interface,
   output: OutputIO,
 ): Promise<void> {

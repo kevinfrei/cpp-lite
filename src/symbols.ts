@@ -11,15 +11,16 @@ export type Sym = {
   value: Val;
 };
 export type Macro = Sym & { args: string[] };
-export type SymbolTable = {
-  AddSymbol: (name: string, value: Val) => void;
+export type SymTable = {
+  AddSym: (name: string, value: Val) => void;
+  RemoveSym: (name: string) => boolean;
   AddMacro: (name: string, args: string[], body: Val) => void;
   IsDefined: (name: string) => boolean;
   IsSymbol: (name: string) => boolean;
   IsMacro: (name: string) => boolean;
   ExpandSymbol: (name: string) => string | undefined;
   ExpandMacro: (name: string, bindings: string[]) => string | undefined;
-  GetParent: () => SymbolTable | undefined;
+  GetParent: () => SymTable | undefined;
   dump: (prefix?: string) => void;
 };
 
@@ -34,8 +35,8 @@ export function DumpSymbol(s: Sym | Macro) {
   }
 }
 
-function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
-  const parent: SymbolTable | null = isArrayOfString(defOrParent)
+function MakeSymbolTable(defOrParent: string[] | SymTable): SymTable {
+  const parent: SymTable | null = isArrayOfString(defOrParent)
     ? null
     : defOrParent;
   const symbolTable = new Map<string, Sym>();
@@ -54,12 +55,24 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
     }
   }
   return {
-    AddSymbol: (name: string, value: Val): void => {
+    AddSym: (name: string, value: Val): void => {
       symbolTable.set(name, MakeSymbol(value));
     },
 
+    RemoveSym: (name: string): boolean => {
+      // Don't worry about parent tables for RemoveSym,
+      // since it's only used in Macro expansion and we shouldn't
+      // ever try to remove a symbol when we have a parent
+
+      // assert(symbolTable.parent === null);
+      return symbolTable.delete(name);
+    },
+
     AddMacro: (name: string, args: string[], body: Val): void => {
-      symbolTable.set(name, MakeMacro(args, body));
+      const symName = args.some((arg) => arg.startsWith('*'))
+        ? '**'
+        : `${args.length}*${name}`;
+      symbolTable.set(symName, MakeMacro(args, body));
     },
 
     IsDefined: (name: string): boolean => {
@@ -101,7 +114,7 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
       return isDefined(sym) ? sym.value || '' : name;
     },
 
-    GetParent: (): SymbolTable | undefined => {
+    GetParent: (): SymTable | undefined => {
       return parent !== null ? parent : undefined;
     },
 
@@ -118,10 +131,10 @@ function MakeSymbolTable(defOrParent: string[] | SymbolTable): SymbolTable {
   };
 }
 
-export function InitializeSymbolTable(defines: string[]): SymbolTable {
+export function InitializeSymbolTable(defines: string[]): SymTable {
   return MakeSymbolTable(defines);
 }
 
-export function ChildSymbolTable(parent: SymbolTable): SymbolTable {
+export function ChildSymbolTable(parent: SymTable): SymTable {
   return MakeSymbolTable(parent);
 }

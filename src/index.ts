@@ -1,10 +1,9 @@
 import { MakeLog } from '@freik/logger';
 import { isNumber } from '@freik/typechk';
-import { ReadStream } from 'fs';
-import { ProcessFile } from './processor.js';
-import { InitializeSymbolTable, SymbolTable } from './symbols.js';
-import { CmdLine } from './types.js';
 import { MakeIO } from './MakeIO.js';
+import { ProcessFile } from './processor.js';
+import { InitializeSymbolTable, SymTable } from './symbols.js';
+import { CmdLine } from './types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment
 const { log, err } = MakeLog('index');
@@ -60,17 +59,14 @@ async function invoke(cmdLine: CmdLine): Promise<void> {
   const { rl, output, input } = MakeIO(cmdLine.input, cmdLine.output);
 
   // Create the symbol table
-  const syms: SymbolTable = InitializeSymbolTable(cmdLine.defines);
-  
+  const syms: SymTable = InitializeSymbolTable(cmdLine.defines);
+
   await ProcessFile(syms, rl, output);
 
   // Close the output
   await output.close();
   // Close the input, too
-  if (cmdLine.input !== undefined) {
-    const irs: ReadStream = input as ReadStream;
-    irs.close();
-  }
+  input.close();
 }
 
 export async function MainAsync(args: string[]): Promise<void> {

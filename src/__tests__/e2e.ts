@@ -20,5 +20,5 @@ test('dumb cat', async () => {
   const dumbin = await FileUtil.textFileToArrayAsync(dumb);
   const dumbout = await FileUtil.textFileToArrayAsync(dumbOut);
   // await new Promise(process.nextTick);
-  expect(dumbin.join("**")).toEqual(dumbout.join("**"));
+  expect(dumbin.join('**')).toEqual(dumbout.join('**'));
 });

@@ -22,6 +22,8 @@ file is specified will output to stdout.
 #   endif
 #endif
 
+#undef MACRO
+
 #include "../file.thing"
 
 #define MACRO BLAH

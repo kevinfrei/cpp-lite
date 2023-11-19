@@ -20,10 +20,10 @@ import { OutputIO } from './types.js';
 const { err } = MakeLog('processor');
 
 async function OutputString(
-  st: SymTable,
+  st: NormalState,
   output: OutputIO,
   line: string,
-): Promise<void> {
+): Promise<ParseState> {
   let remaining = line;
   do {
     let match = remaining.match(Rgx.nextToken);
@@ -31,13 +31,15 @@ async function OutputString(
       const initSpace = match[1];
       let token: string | undefined = match[2];
       remaining = match[3];
-      if (st.IsSymbol(token)) {
-        token = st.ExpandSymbol(token);
-      } else if (st.IsMacro(token)) {
+      if (st.table.IsSymbol(token)) {
+        token = st.table.ExpandSymbol(token);
+      } else if (st.table.IsMacro(token)) {
         // TODO: Not ready for this yet :/
+
         // I think I want a nested Symbol Table :o
         // Parse the arguments, and then output the macro body with the extra symbols added
-        token = st.ExpandMacro(token, []);
+
+        token = st.table.ExpandMacro(token, []);
       }
       await output(initSpace + (token || ''));
     } else {
@@ -54,6 +56,7 @@ async function OutputString(
     }
   } while (remaining.length > 0);
   await output('\n');
+  return st;
 }
 
 async function NormalContext(
@@ -92,7 +95,7 @@ async function NormalContext(
     }
   } else if (IsTrueState(st)) {
     // If we're in a "true" state, output the line
-    await OutputString(st.table, output, line);
+    return await OutputString(st, output, line);
   }
   return st;
 }

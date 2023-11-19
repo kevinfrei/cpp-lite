@@ -58,7 +58,7 @@ export function HandleDefine(ps: NormalState, line: string): ParseState {
   const name = def[1];
   const value = def[2].trimStart();
   if (value.trim().startsWith('(')) {
-    // TODO: We have ourselves a macro
+    // We have ourselves a macro
 
     // For varargs macros, they should be registered as "**<macroname>"
     // There can be only a *single* macro with varargs.
